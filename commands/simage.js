@@ -1,4 +1,4 @@
-﻿const sharp = require('sharp');
+const Jimp = require('jimp');
 const fs = require('fs');
 const fsPromises = require('fs/promises');
 const fse = require('fs-extra');
@@ -27,21 +27,16 @@ const convertStickerToImage = async (sock, quotedMessage, chatId) => {
             return;
         }
 
-        const stickerFilePath = path.join(tempDir, `sticker_${Date.now()}.webp`);
-        const outputImagePath = path.join(tempDir, `converted_image_${Date.now()}.png`);
-
         const stream = await downloadContentFromMessage(stickerMessage, 'sticker');
         let buffer = Buffer.from([]);
         for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
 
-        await fsPromises.writeFile(stickerFilePath, buffer);
-        await sharp(stickerFilePath).toFormat('png').toFile(outputImagePath);
+        // Process with Jimp
+        const image = await Jimp.read(buffer);
+        const imageBuffer = await image.getBufferAsync(Jimp.MIME_PNG);
 
-        const imageBuffer = await fsPromises.readFile(outputImagePath);
         await sock.sendMessage(chatId, { image: imageBuffer, caption: 'Here is the converted image!' });
 
-        scheduleFileDeletion(stickerFilePath);
-        scheduleFileDeletion(outputImagePath);
     } catch (error) {
         console.error('Error converting sticker to image:', error);
         await sock.sendMessage(chatId, { text: 'An error occurred while converting the sticker.' });
