@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 const fs = require('fs');
+=======
+﻿const fs = require('fs');
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
 const path = require('path');
 const { tmpdir } = require('os');
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
@@ -210,6 +214,7 @@ async function handleMessageRevocation(sock, revocationMessage) {
         const config = loadAntideleteConfig();
         if (!config.enabled) return;
 
+<<<<<<< HEAD
         // Clean up messageStore periodically to prevent memory leaks
         if (messageStore.size > 1000) {
             const keys = Array.from(messageStore.keys()).slice(0, 200);
@@ -224,6 +229,13 @@ async function handleMessageRevocation(sock, revocationMessage) {
         const ownerNumber = `${botId}@s.whatsapp.net`;
 
         // We removed the block that ignores your own deleted messages so you can test it easily!
+=======
+        const messageId = revocationMessage.message.protocolMessage.key.id;
+        const deletedBy = revocationMessage.participant || revocationMessage.key.participant || revocationMessage.key.remoteJid;
+        const ownerNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+
+        if (deletedBy.includes(sock.user.id) || deletedBy === ownerNumber) return;
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
 
         const original = messageStore.get(messageId);
         if (!original) return;

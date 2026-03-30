@@ -1,9 +1,17 @@
 /**
  * Mazari Bot - A WhatsApp Bot
  * Modified by Sarukh Mazari
+<<<<<<< HEAD
  * * This program is free software: you can redistribute it and/or modify
  * it under the terms of the MIT License.
  * * Original Credits:
+=======
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the MIT License.
+ * 
+ * Original Credits:
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
  * - Baileys Library by @adiwajshing
  * - Pair Code implementation inspired by  Zoxer
  */
@@ -276,7 +284,11 @@ async function startXeonBotInc() {
 
             if (connection == "open") {
                 console.log(chalk.magenta(` `))
+<<<<<<< HEAD
                 console.log(chalk.yellow(`🌿 Connected to => ${XeonBotInc.user.name || 'WhatsApp'}`))
+=======
+                console.log(chalk.yellow(`🌿Connected to => ` + JSON.stringify(XeonBotInc.user, null, 2)))
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
 
                 try {
                     const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
@@ -289,7 +301,10 @@ async function startXeonBotInc() {
 ⏰ *Time:* ${new Date().toLocaleTimeString()}
 ✅ *Status:* Online & Ready!
 🌐 *Channel:* ${settings.channelLink}
+<<<<<<< HEAD
 🌐 *Channel2:* ${settings.channelLink2}
+=======
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
 
 _The bot is now active and ready to manage your groups._
 `.trim();
@@ -301,6 +316,18 @@ _The bot is now active and ready to manage your groups._
                             newsletterJid: settings.newsletterJid || '',
                             newsletterName: settings.botName || 'MAZARI BOT',
                             serverMessageId: -1
+<<<<<<< HEAD
+=======
+                        },
+                        externalAdReply: {
+                            showAdAttribution: true,
+                            title: 'MAZARI BOT OFFICIAL',
+                            body: 'Bot is now online!',
+                            thumbnailUrl: 'https://img1.pixhost.to/images/6601/612882514_LightSecret.jpg',
+                            sourceUrl: settings.channelLink,
+                            mediaType: 1,
+                            renderLargerThumbnail: true
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
                         }
                     };
 
@@ -450,12 +477,20 @@ startXeonBotInc().catch(error => {
     process.exit(1)
 })
 process.on('uncaughtException', (err) => {
+<<<<<<< HEAD
     console.error('⚠️ Uncaught Exception:', err?.message || err || 'Unknown Error');
     if (err?.stack) console.error(err.stack);
 })
 
 process.on('unhandledRejection', (reason, promise) => {
     console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason?.message || reason || 'No reason provided');
+=======
+    console.error('Uncaught Exception:', err)
+})
+
+process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Rejection:', err)
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
 })
 
 let file = require.resolve(__filename)

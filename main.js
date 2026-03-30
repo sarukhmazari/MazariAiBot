@@ -29,7 +29,11 @@ const settings = require('./settings');
 require('./config.js');
 const { isBanned } = require('./lib/isBanned');
 const yts = require('yt-search');
+<<<<<<< HEAD
 const { fetchBuffer, reSize } = require('./lib/myfunc');
+=======
+const { fetchBuffer } = require('./lib/myfunc');
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
 const fetch = require('node-fetch');
 const ytdl = require('ytdl-core');
 const axios = require('axios');
@@ -150,10 +154,16 @@ const statusCommand = require('./commands/status');
 global.packname = settings.packname;
 global.author = settings.author;
 global.channelLink = settings.channelLink;
+<<<<<<< HEAD
 global.channelLink2 = settings.channelLink2;
 global.ytch = "";
 
 // Initialize global.channelInfo with basic structure
+=======
+global.ytch = "";
+
+// Global configurations for channel attribution
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
 global.channelInfo = {
     contextInfo: {
         forwardingScore: 999,
@@ -162,10 +172,23 @@ global.channelInfo = {
             newsletterJid: settings.newsletterJid,
             newsletterName: settings.botName + ' OFFICIAL',
             serverMessageId: -1
+<<<<<<< HEAD
+=======
+        },
+        externalAdReply: {
+            showAdAttribution: true,
+            title: settings.botName + ' OFFICIAL',
+            body: 'View Official Channel',
+            thumbnailUrl: 'https://img1.pixhost.to/images/6601/612882514_LightSecret.jpg',
+            sourceUrl: settings.channelLink,
+            mediaType: 1,
+            renderLargerThumbnail: true
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
         }
     }
 };
 
+<<<<<<< HEAD
 // Load and resize DP image for channel attribution thumbnail
 async function initChannelInfo() {
     try {
@@ -212,6 +235,12 @@ async function handleMessages(sock, messageUpdate, printLog) {
     }
 
     const channelInfo = global.channelInfo; // Get latest global state
+=======
+const channelInfo = global.channelInfo;
+
+async function handleMessages(sock, messageUpdate, printLog) {
+    let chatId;
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
     try {
         const { messages, type } = messageUpdate;
         if (type !== 'notify') return;

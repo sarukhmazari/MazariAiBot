@@ -4,9 +4,15 @@ const fetch = require('node-fetch');
 async function aiCommand(sock, chatId, message) {
     try {
         const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
+<<<<<<< HEAD
 
         if (!text) {
             return await sock.sendMessage(chatId, {
+=======
+        
+        if (!text) {
+            return await sock.sendMessage(chatId, { 
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
                 text: "Please provide a question after .gpt or .gemini\n\nExample: .gpt write a basic html code"
             }, { quoted: message });
         }
@@ -16,7 +22,11 @@ async function aiCommand(sock, chatId, message) {
         const query = parts.slice(1).join(' ').trim();
 
         if (!query) {
+<<<<<<< HEAD
             return await sock.sendMessage(chatId, { text: "Please provide a question" }, { quoted: message });
+=======
+            return await sock.sendMessage(chatId, { text: "Please provide a question" }, {quoted:message});
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
         }
 
         await sock.sendMessage(chatId, { react: { text: '🤖', key: message.key } });
@@ -48,7 +58,11 @@ async function aiCommand(sock, chatId, message) {
             }
         }
         throw new Error('All AI APIs failed');
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
     } catch (error) {
         console.error('AI Command Error:', error);
         await sock.sendMessage(chatId, {

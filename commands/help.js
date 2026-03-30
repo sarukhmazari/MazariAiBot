@@ -143,11 +143,15 @@ async function helpCommand(sock, chatId, message) {
 
 *📢 Official Channel*
 🔗 ${settings.channelLink || 'https://whatsapp.com/channel/0029VbBRITODzgTGQhZSFT3P'}
+<<<<<<< HEAD
 ${settings.channelLink2 ? `🔗 ${settings.channelLink2}` : ''}
+=======
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
 
 *✨ Powered by ${settings.botName || 'MAZARI BOT'} 🤖*`.trim();
 
     try {
+<<<<<<< HEAD
         const dpPath = settings.connectionImagePath || './assets/images/DP.png';
         if (fs.existsSync(dpPath)) {
             await sock.sendMessage(chatId, {
@@ -161,6 +165,12 @@ ${settings.channelLink2 ? `🔗 ${settings.channelLink2}` : ''}
                 contextInfo: global.channelInfo?.contextInfo
             }, { quoted: message });
         }
+=======
+        await sock.sendMessage(chatId, {
+            text: helpMessage,
+            contextInfo: global.channelInfo?.contextInfo
+        }, { quoted: message });
+>>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
     } catch (error) {
         console.error('Error in help command:', error);
         await sock.sendMessage(chatId, { text: helpMessage }, { quoted: message });
