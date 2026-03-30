@@ -17,8 +17,10 @@ async function helpCommand(sock, chatId, message) {
     // Get Bot Mode
     let isPublic = true;
     try {
-        const data = JSON.parse(fs.readFileSync('./data/messageCount.json'));
-        if (typeof data.isPublic === 'boolean') isPublic = data.isPublic;
+        if (fs.existsSync('./data/messageCount.json')) {
+            const data = JSON.parse(fs.readFileSync('./data/messageCount.json'));
+            if (typeof data.isPublic === 'boolean') isPublic = data.isPublic;
+        }
     } catch (e) {}
     const mode = isPublic ? 'public' : 'private';
 

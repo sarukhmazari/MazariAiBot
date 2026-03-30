@@ -286,11 +286,14 @@ async function handleMessages(sock, messageUpdate, printLog) {
         // Read bot mode once; don't early-return so moderation can still run in private mode
         let isPublic = true;
         try {
+            if (!fs.existsSync('./data')) fs.mkdirSync('./data', { recursive: true });
+            if (!fs.existsSync('./data/messageCount.json')) {
+                fs.writeFileSync('./data/messageCount.json', JSON.stringify({ isPublic: true }, null, 2));
+            }
             const data = JSON.parse(fs.readFileSync('./data/messageCount.json'));
             if (typeof data.isPublic === 'boolean') isPublic = data.isPublic;
         } catch (error) {
-            console.error('Error checking access mode:', error);
-            // default isPublic=true on error
+            // suppress error log for missing files, default is isPublic=true
         }
         const isOwnerOrSudoCheck = message.key.fromMe || senderIsOwnerOrSudo;
         // Check if user is banned (skip ban check for unban command)
@@ -540,13 +543,15 @@ async function handleMessages(sock, messageUpdate, printLog) {
                     }
                 }
                 // Read current data first
-                let data;
+                let data = { isPublic: true };
                 try {
+                    if (!fs.existsSync('./data')) fs.mkdirSync('./data', { recursive: true });
+                    if (!fs.existsSync('./data/messageCount.json')) {
+                        fs.writeFileSync('./data/messageCount.json', JSON.stringify(data, null, 2));
+                    }
                     data = JSON.parse(fs.readFileSync('./data/messageCount.json'));
                 } catch (error) {
-                    console.error('Error reading access mode:', error);
-                    await sock.sendMessage(chatId, { text: 'Failed to read bot mode status', ...channelInfo });
-                    return;
+                    /* fallback to default */
                 }
 
                 const action = userMessage.split(' ')[1]?.toLowerCase();
