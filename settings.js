@@ -12,14 +12,9 @@ const settings = {
   version: "1.0.0",
   updateZipUrl: "",
   channelLink: "https://whatsapp.com/channel/0029VbBRITODzgTGQhZSFT3P",
-<<<<<<< HEAD
   channelLink2: "https://whatsapp.com/channel/0029Vb6GUj8BPzjOWNfnhm1B",
   newsletterJid: "120363404139113188@newsletter",
   connectionImagePath: "./assets/images/DP.png",
-=======
-  newsletterJid: "120363404139113188@newsletter",
-  connectionImagePath: "./assets/connection.png",
->>>>>>> 7f087b49e4e395a80286b61562dbad0c4c70dcc6
 };
 
 module.exports = settings;
