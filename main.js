@@ -34,7 +34,7 @@ const fetch = require('node-fetch');
 const ytdl = require('ytdl-core');
 const axios = require('axios');
 const ffmpeg = require('fluent-ffmpeg');
-const { isSudo } = require('./lib/index');
+const { isSudo, getCustomCommands, getAutoblock } = require('./lib/index');
 const isOwnerOrSudo = require('./lib/isOwner');
 const { autotypingCommand, isAutotypingEnabled, handleAutotypingForMessage, handleAutotypingForCommand, showTypingAfterCommand } = require('./commands/autotyping');
 const { autoreadCommand, isAutoreadEnabled, handleAutoread } = require('./commands/autoread');
@@ -146,6 +146,11 @@ const { pmblockerCommand, readState: readPmBlockerState } = require('./commands/
 const settingsCommand = require('./commands/settings');
 const soraCommand = require('./commands/sora');
 const statusCommand = require('./commands/status');
+const customCommand = require('./commands/custom');
+const autoblockCommand = require('./commands/autoblock');
+const antispamCommand = require('./commands/antispam');
+const { handleSpamDetection, isUserIgnored } = require('./lib/spamTracker');
+const { handleAntispamDetection } = require('./lib/antispamTracker');
 
 // Global settings
 global.packname = settings.packname;
@@ -222,6 +227,28 @@ async function handleMessages(sock, messageUpdate, printLog) {
         if (!message?.message) return;
 
         chatId = message.key?.remoteJid;
+        const senderId = message.key.participant || message.key.remoteJid;
+        const isGroup = chatId?.endsWith('@g.us');
+        const senderIsSudo = await isSudo(senderId);
+        const senderIsOwnerOrSudo = await isOwnerOrSudo(senderId, sock, chatId);
+
+        const userMessage = (
+            message.message?.conversation?.trim() ||
+            message.message?.extendedTextMessage?.text?.trim() ||
+            message.message?.imageMessage?.caption?.trim() ||
+            message.message?.videoMessage?.caption?.trim() ||
+            message.message?.buttonsResponseMessage?.selectedButtonId?.trim() ||
+            ''
+        ).toLowerCase().replace(/\.\s+/g, '.').trim();
+
+        const rawText = message.message?.conversation?.trim() ||
+            message.message?.extendedTextMessage?.text?.trim() ||
+            message.message?.imageMessage?.caption?.trim() ||
+            message.message?.videoMessage?.caption?.trim() ||
+            '';
+
+        // Auto-Block on Spam logic: Check if user is ignored (simulated block)
+        if (isUserIgnored(chatId) && !message.key.fromMe && !senderIsOwnerOrSudo) return;
 
         // Handle autoread functionality
         await handleAutoread(sock, message);
@@ -237,16 +264,22 @@ async function handleMessages(sock, messageUpdate, printLog) {
             return;
         }
 
-        const senderId = message.key.participant || message.key.remoteJid;
-        const isGroup = chatId?.endsWith('@g.us');
-        const senderIsSudo = await isSudo(senderId);
-        const senderIsOwnerOrSudo = await isOwnerOrSudo(senderId, sock, chatId);
+
+
+        // Auto-Block on Spam logic (DM only)
+        await handleSpamDetection(sock, chatId, message.key.fromMe, senderIsOwnerOrSudo, isGroup, getAutoblock);
+
+        // Group Anti-Spam Detection (Repetition Kick System)
+        if (isGroup && userMessage && !message.key.fromMe) {
+            const adminStatus = await isAdmin(sock, chatId, senderId);
+            await handleAntispamDetection(sock, chatId, senderId, userMessage, isGroup, adminStatus.isSenderAdmin, senderIsOwnerOrSudo, message);
+        }
 
         // 🚀 Auto-react to Owner Messages (Requirement)
         const ownerNumbers = settings.ownerNumbers || [settings.ownerNumber];
         const botNumber = (sock.user?.id || '').split(':')[0].split('@')[0];
         const senderNumber = senderId.split(':')[0].split('@')[0];
-        
+
         const isActuallyOwner = ownerNumbers.some(num => {
             const cleanNum = num.replace(/[^0-9]/g, '');
             return senderNumber === cleanNum;
@@ -254,18 +287,18 @@ async function handleMessages(sock, messageUpdate, printLog) {
 
         // 🚀 Detect if it's an owner's channel/newsletter
         const isOwnerChannel = chatId?.endsWith('@newsletter') && (
-            chatId === settings.newsletterJid || 
+            chatId === settings.newsletterJid ||
             (settings.newsletters && settings.newsletters.includes(chatId))
         );
 
         // React if it's an owner or owner channel, but NOT if it's from the bot itself
         if ((isActuallyOwner || isOwnerChannel) && !message.key.fromMe) {
             try {
-                await sock.sendMessage(chatId, { 
-                    react: { 
-                        text: "🔥", 
-                        key: message.key 
-                    } 
+                await sock.sendMessage(chatId, {
+                    react: {
+                        text: "🔥",
+                        key: message.key
+                    }
                 });
             } catch (e) {
                 // Ignore reaction errors
@@ -293,22 +326,6 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 return;
             }
         }
-
-        const userMessage = (
-            message.message?.conversation?.trim() ||
-            message.message?.extendedTextMessage?.text?.trim() ||
-            message.message?.imageMessage?.caption?.trim() ||
-            message.message?.videoMessage?.caption?.trim() ||
-            message.message?.buttonsResponseMessage?.selectedButtonId?.trim() ||
-            ''
-        ).toLowerCase().replace(/\.\s+/g, '.').trim();
-
-        // Preserve raw message for commands like .tag that need original casing
-        const rawText = message.message?.conversation?.trim() ||
-            message.message?.extendedTextMessage?.text?.trim() ||
-            message.message?.imageMessage?.caption?.trim() ||
-            message.message?.videoMessage?.caption?.trim() ||
-            '';
 
         // Only log command usage
         if (userMessage.startsWith('.')) {
@@ -450,6 +467,21 @@ async function handleMessages(sock, messageUpdate, printLog) {
             if (!message.key.fromMe && !senderIsOwnerOrSudo) {
                 await sock.sendMessage(chatId, { text: '❌ This command is only available for the owner or sudo!' }, { quoted: message });
                 return;
+            }
+        }
+
+        // Custom command restriction for groups
+        if (isGroup && !isOwnerOrSudoCheck) {
+            const allowedCommands = await getCustomCommands(chatId);
+            if (allowedCommands && allowedCommands.length > 0) {
+                const adminStatusForCheck = await isAdmin(sock, chatId, senderId);
+                if (!adminStatusForCheck.isSenderAdmin) {
+                    const usedCommand = userMessage.split(/\s+/)[0].slice(1).toLowerCase().trim();
+                    if (!allowedCommands.includes(usedCommand)) {
+                        await sock.sendMessage(chatId, { text: '❌ This command is not allowed in this group.' }, { quoted: message });
+                        return;
+                    }
+                }
             }
         }
 
@@ -796,8 +828,31 @@ async function handleMessages(sock, messageUpdate, printLog) {
                     await sock.sendMessage(chatId, { text: 'This command can only be used in groups.', ...channelInfo }, { quoted: message });
                     return;
                 }
-                const adminLockArgs = userMessage.split(' ').slice(1);
-                await adminlockCommand(sock, chatId, senderId, adminLockArgs, message);
+                {
+                    const adminLockArgs = userMessage.split(' ').slice(1);
+                    await adminlockCommand(sock, chatId, senderId, adminLockArgs, message);
+                }
+                break;
+            case userMessage.startsWith('.custom'):
+                {
+                    const customArgs = userMessage.split(/\s+/).slice(1);
+                    await customCommand(sock, chatId, senderId, customArgs, message);
+                }
+                commandExecuted = true;
+                break;
+            case userMessage.startsWith('.autoblock'):
+                {
+                    const autoblockArgs = userMessage.split(/\s+/).slice(1);
+                    await autoblockCommand(sock, chatId, senderId, autoblockArgs, message);
+                }
+                commandExecuted = true;
+                break;
+            case userMessage.startsWith('.antispam'):
+                {
+                    const antispamArgs = userMessage.split(/\s+/).slice(1);
+                    await antispamCommand(sock, chatId, senderId, antispamArgs, message);
+                }
+                commandExecuted = true;
                 break;
             case userMessage === '.ping':
                 await pingCommand(sock, chatId, message);

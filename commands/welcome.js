@@ -2,6 +2,7 @@ const { handleWelcome } = require('../lib/welcome');
 const { isWelcomeOn, getWelcome } = require('../lib/index');
 const { channelInfo } = require('../lib/messageConfig');
 const fetch = require('node-fetch');
+const { getGroupMetadata } = require('../lib/myfunc');
 
 async function welcomeCommand(sock, chatId, message, match) {
     // Check if it's a group
@@ -27,7 +28,7 @@ async function handleJoinEvent(sock, id, participants) {
     const customMessage = await getWelcome(id);
 
     // Get group metadata
-    const groupMetadata = await sock.groupMetadata(id);
+    const groupMetadata = await getGroupMetadata(sock, id);
     const groupName = groupMetadata.subject;
     const groupDesc = groupMetadata.desc || 'No description available';
 

@@ -1,5 +1,5 @@
-﻿const isAdmin = require('../lib/isAdmin');  // Move isAdmin to helpers
-
+const isAdmin = require('../lib/isAdmin');  // Move isAdmin to helpers
+const { getGroupMetadata } = require('../lib/myfunc');
 async function tagAllCommand(sock, chatId, senderId, message) {
     try {
         const { isSenderAdmin, isBotAdmin } = await isAdmin(sock, chatId, senderId);
@@ -16,7 +16,7 @@ async function tagAllCommand(sock, chatId, senderId, message) {
         }
 
         // Get group metadata
-        const groupMetadata = await sock.groupMetadata(chatId);
+        const groupMetadata = await getGroupMetadata(sock, chatId);
         const participants = groupMetadata.participants;
 
         if (!participants || participants.length === 0) {

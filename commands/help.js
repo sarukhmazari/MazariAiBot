@@ -54,7 +54,6 @@ async function helpCommand(sock, chatId, message) {
 ⬖ .autoread
 ⬖ .anticall
 ⬖ .pmblocker
-⬖ .adminlock
 
 ◈──『 GROUP COMMANDS 』──◈
 ⬖ .kick
@@ -71,6 +70,14 @@ async function helpCommand(sock, chatId, message) {
 ⬖ .antitag
 ⬖ .welcome
 ⬖ .goodbye
+⬖ .adminlock
+⬖ .custom set
+⬖ .custom off
+⬖ .custom list
+⬖ .autoblock on
+⬖ .autoblock off
+⬖ .antispam on
+⬖ .antispam off
 
 ◈──『 DOWNLOADERS 』──◈
 ⬖ .facebook

@@ -27,5 +27,10 @@
   },
   "adminlock": {
     "120363407517350313@g.us": true
+  },
+  "customCommands": {},
+  "autoblock": true,
+  "antispam": {
+    "120363407517350313@g.us": true
   }
 }

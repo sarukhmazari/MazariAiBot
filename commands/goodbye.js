@@ -1,6 +1,7 @@
-﻿const { handleGoodbye } = require('../lib/welcome');
+const { handleGoodbye } = require('../lib/welcome');
 const { isGoodByeOn, getGoodbye } = require('../lib/index');
 const fetch = require('node-fetch');
+const { getGroupMetadata } = require('../lib/myfunc');
 
 async function goodbyeCommand(sock, chatId, message, match) {
     // Check if it's a group
@@ -26,7 +27,7 @@ async function handleLeaveEvent(sock, id, participants) {
     const customMessage = await getGoodbye(id);
 
     // Get group metadata
-    const groupMetadata = await sock.groupMetadata(id);
+    const groupMetadata = await getGroupMetadata(sock, id);
     const groupName = groupMetadata.subject;
 
     // Send goodbye message for each leaving participant
