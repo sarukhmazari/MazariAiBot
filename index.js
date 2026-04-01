@@ -301,15 +301,6 @@ _The bot is now active and ready to manage your groups._
                             newsletterJid: settings.newsletterJid || '',
                             newsletterName: settings.botName || 'MAZARI BOT',
                             serverMessageId: -1
-                        },
-                        externalAdReply: {
-                            showAdAttribution: true,
-                            title: 'MAZARI BOT OFFICIAL',
-                            body: 'Bot is now online!',
-                            thumbnailUrl: 'https://img1.pixhost.to/images/6601/612882514_LightSecret.jpg',
-                            sourceUrl: settings.channelLink,
-                            mediaType: 1,
-                            renderLargerThumbnail: true
                         }
                     };
 
@@ -330,10 +321,7 @@ _The bot is now active and ready to manage your groups._
                 }
 
                 // Autofollow newsletters
-                const newsletters = [
-                    '120363404139113188@newsletter',
-                    '120363421676417753@newsletter'
-                ]
+                const newsletters = settings.newsletters || []
                 for (const jid of newsletters) {
                     try {
                         await XeonBotInc.newsletterFollow(jid)
@@ -343,12 +331,9 @@ _The bot is now active and ready to manage your groups._
                 }
 
                 await delay(1999)
-                console.log(chalk.yellow(`\n\n                  ${chalk.bold.blue(`[ ${global.botname || 'MAZARI BOT'} ]`)}\n\n`))
+                console.log(chalk.yellow(`\n\n                  ${chalk.bold.blue(`[ MAZARI AI BOT ]`)}\n\n`))
                 console.log(chalk.cyan(`< ================================================== >`))
-                console.log(chalk.magenta(`\n${global.themeemoji || '•'} OWNER: Sarukh Mazari`))
-                console.log(chalk.magenta(`${global.themeemoji || '•'} WA NUMBER: ${owner}`))
-                console.log(chalk.green(`${global.themeemoji || '•'} 🤖 Bot Connected Successfully! ✅`))
-                console.log(chalk.blue(`Bot Version: ${settings.version}`))
+                console.log(chalk.green(`\n${global.themeemoji || '•'} 🤖 Bot Connected Successfully! ✅`))
             }
 
             if (connection === 'close') {

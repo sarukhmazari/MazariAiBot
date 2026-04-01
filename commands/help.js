@@ -117,6 +117,7 @@ async function helpCommand(sock, chatId, message) {
 ║ .autoread
 ║ .anticall
 ║ .pmblocker
+║ .adminlock
 ╚═══════════════════════════
 
 ╔═══════[ 🎮 *GAMES/FUN* ]═══════

@@ -98,6 +98,7 @@ const shipCommand = require('./commands/ship');
 const groupInfoCommand = require('./commands/groupinfo');
 const resetlinkCommand = require('./commands/resetlink');
 const staffCommand = require('./commands/staff');
+const { adminlockCommand, handleAdminlockPromotion } = require('./commands/adminlock');
 const addCommand = require('./commands/add');
 const unbanCommand = require('./commands/unban');
 const emojimixCommand = require('./commands/emojimix');
@@ -760,6 +761,14 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 const mentionedJidListDemote = message.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
                 await demoteCommand(sock, chatId, mentionedJidListDemote, message);
                 break;
+            case userMessage.startsWith('.adminlock'):
+                if (!isGroup) {
+                    await sock.sendMessage(chatId, { text: 'This command can only be used in groups.', ...channelInfo }, { quoted: message });
+                    return;
+                }
+                const adminLockArgs = userMessage.split(' ').slice(1);
+                await adminlockCommand(sock, chatId, senderId, adminLockArgs, message);
+                break;
             case userMessage === '.ping':
                 await pingCommand(sock, chatId, message);
                 break;
@@ -1320,6 +1329,7 @@ async function handleGroupParticipantUpdate(sock, update) {
 
         // Handle promotion events
         if (action === 'promote') {
+            await handleAdminlockPromotion(sock, id, participants, author);
             if (!isPublic) return;
             await handlePromotionEvent(sock, id, participants, author);
             return;

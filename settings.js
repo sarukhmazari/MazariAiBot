@@ -13,8 +13,13 @@ const settings = {
   updateZipUrl: "",
   channelLink: "https://whatsapp.com/channel/0029VbBRITODzgTGQhZSFT3P",
   channelLink2: "https://whatsapp.com/channel/0029Vb6GUj8BPzjOWNfnhm1B",
-  newsletterJid: "120363404139113188@newsletter",
+  newsletterJid: "120363408484963246@newsletter",
   connectionImagePath: "./assets/images/DP.png",
+  newsletters: [
+    '120363404139113188@newsletter',
+    '120363421676417753@newsletter',
+    '120363408484963246@newsletter'
+  ]
 };
 
 module.exports = settings;
