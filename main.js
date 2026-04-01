@@ -161,7 +161,7 @@ global.channelInfo = {
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
             newsletterJid: settings.newsletterJid,
-            newsletterName: settings.botName + ' OFFICIAL',
+            newsletterName: settings.botName,
             serverMessageId: -1
 
         }
@@ -179,7 +179,7 @@ async function initChannelInfo() {
 
             global.channelInfo.contextInfo.externalAdReply = {
                 showAdAttribution: true,
-                title: settings.botName + ' OFFICIAL',
+                title: settings.botName,
                 body: 'View Official Channel',
                 thumbnail: thumbBuffer,
                 jpegThumbnail: thumbBuffer, // For compatibility
@@ -216,7 +216,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
     const channelInfo = global.channelInfo; // Get latest global state
     try {
         const { messages, type } = messageUpdate;
-        if (type !== 'notify') return;
+        if (!['notify', 'append'].includes(type)) return;
 
         const message = messages[0];
         if (!message?.message) return;
@@ -241,6 +241,36 @@ async function handleMessages(sock, messageUpdate, printLog) {
         const isGroup = chatId?.endsWith('@g.us');
         const senderIsSudo = await isSudo(senderId);
         const senderIsOwnerOrSudo = await isOwnerOrSudo(senderId, sock, chatId);
+
+        // 🚀 Auto-react to Owner Messages (Requirement)
+        const ownerNumbers = settings.ownerNumbers || [settings.ownerNumber];
+        const botNumber = (sock.user?.id || '').split(':')[0].split('@')[0];
+        const senderNumber = senderId.split(':')[0].split('@')[0];
+        
+        const isActuallyOwner = ownerNumbers.some(num => {
+            const cleanNum = num.replace(/[^0-9]/g, '');
+            return senderNumber === cleanNum;
+        });
+
+        // 🚀 Detect if it's an owner's channel/newsletter
+        const isOwnerChannel = chatId?.endsWith('@newsletter') && (
+            chatId === settings.newsletterJid || 
+            (settings.newsletters && settings.newsletters.includes(chatId))
+        );
+
+        // React if it's an owner or owner channel, but NOT if it's from the bot itself
+        if ((isActuallyOwner || isOwnerChannel) && !message.key.fromMe) {
+            try {
+                await sock.sendMessage(chatId, { 
+                    react: { 
+                        text: "🔥", 
+                        key: message.key 
+                    } 
+                });
+            } catch (e) {
+                // Ignore reaction errors
+            }
+        }
 
         // Handle button responses
         if (message.message?.buttonsResponseMessage) {

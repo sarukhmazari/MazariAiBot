@@ -282,7 +282,8 @@ async function startXeonBotInc() {
                     const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
                     const connectionText = `
 ┏━━━━━━━━━━━━━━━━━━━━┓
-┃  🤖 *MAZARI BOT CONNECTED* 🤖
+┏━━━━━━━━━━━━━━━━━━━━┓
+┃  🤖 *${settings.botName || '𝙼𝚊𝚣𝚊𝚛𝚒 𝚋𝚘𝚝'} CONNECTED* 🤖
 ┗━━━━━━━━━━━━━━━━━━━━┛
 
 📅 *Date:* ${new Date().toLocaleDateString()}
@@ -304,17 +305,28 @@ _The bot is now active and ready to manage your groups._
                         }
                     };
 
+                    const musicPath = './assets/musics/MUSIC.mp3';
+                    let connMsg;
                     if (settings.connectionImagePath && fs.existsSync(settings.connectionImagePath)) {
-                        await XeonBotInc.sendMessage(botNumber, {
+                        connMsg = await XeonBotInc.sendMessage(botNumber, {
                             image: { url: settings.connectionImagePath },
                             caption: connectionText,
                             contextInfo
                         });
                     } else {
-                        await XeonBotInc.sendMessage(botNumber, {
+                        connMsg = await XeonBotInc.sendMessage(botNumber, {
                             text: connectionText,
                             contextInfo
                         });
+                    }
+
+                    if (fs.existsSync(musicPath)) {
+                        await XeonBotInc.sendMessage(botNumber, { 
+                            audio: { url: musicPath }, 
+                            mimetype: 'audio/mpeg', 
+                            ptt: false, // Sent as standard audio to ensure max compatibility
+                            contextInfo
+                        }, { quoted: connMsg });
                     }
                 } catch (error) {
                     console.error('Error sending connection message:', error.message)

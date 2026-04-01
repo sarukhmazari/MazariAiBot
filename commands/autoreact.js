@@ -10,16 +10,16 @@ const isOwnerOrSudo = require('../lib/isOwner');
 const configPath = path.join(__dirname, '..', 'data', 'react.json');
 
 const defaultData = {
-  autoreact: false,
-  reactEmojis: [
-    "🪀",
-    "🥏",
-    "🤩",
-    "💔",
-    "🕐️",
-    "🤍",
-    "🥵"
-  ]
+    autoreact: false,
+    reactEmojis: [
+        "🪀",
+        "🥏",
+        "🤩",
+        "💔",
+        "🕐️",
+        "🤍",
+        "🥵"
+    ]
 };
 
 // Ensure config exists and is defaulted to OFF
@@ -106,6 +106,11 @@ async function addAutoReaction(sock, message) {
         // 3. Prevent reacting to the bot's own messages (Reacts to INCOMING only)
         if (message.key.fromMe) return;
 
+        // 4. Skip for owners (they get priority special reaction)
+        const senderId = message.key.participant || message.key.remoteJid;
+        const isOwner = await isOwnerOrSudo(senderId, sock, message.key.remoteJid);
+        if (isOwner) return;
+
         const remoteJid = message.key.remoteJid;
 
         // 4. Ignore status broadcasts, but ALLOW Groups, Personal Chats, and Channels (@newsletter)
@@ -113,10 +118,10 @@ async function addAutoReaction(sock, message) {
 
         // 5. Select a random emoji from the react.json config
         const config = initConfig();
-        const emojis = Array.isArray(config.reactEmojis) && config.reactEmojis.length > 0 
-            ? config.reactEmojis 
+        const emojis = Array.isArray(config.reactEmojis) && config.reactEmojis.length > 0
+            ? config.reactEmojis
             : defaultData.reactEmojis;
-            
+
         const emoji = emojis[Math.floor(Math.random() * emojis.length)];
 
         // 6. Send the reaction
