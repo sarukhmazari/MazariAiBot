@@ -19,7 +19,8 @@ const settings = {
   newsletters: [
     '120363404139113188@newsletter',
     '120363421676417753@newsletter',
-    '120363408484963246@newsletter'
+    '120363408484963246@newsletter',
+    '120363400318546224@newsletter'
   ]
 };
 

@@ -1367,21 +1367,28 @@ async function handleMessages(sock, messageUpdate, printLog) {
             await showTypingAfterCommand(sock, chatId);
         }
 
-        // Function to handle .groupjid command
+        // Function to handle .jid command
         async function groupJidCommand(sock, chatId, message) {
-            const groupJid = message.key.remoteJid;
+            try {
+                // Determine the correct JID (Newsletter/Channel, Group, or User)
+                const newsletterJid = message.message?.newsletterMessageInfo?.newsletterJid;
+                const targetJid = newsletterJid || message.key?.remoteJid || chatId;
 
-            if (!groupJid.endsWith('@g.us')) {
-                return await sock.sendMessage(chatId, {
-                    text: "❌ This command can only be used in a group."
+                if (!targetJid) {
+                    return await sock.sendMessage(chatId, { text: "❌ Could not determine JID." });
+                }
+
+                await sock.sendMessage(chatId, {
+                    text: `✅ JID: ${targetJid}`
+                }, {
+                    quoted: message
                 });
+            } catch (error) {
+                console.error('Error in JID command:', error);
+                if (chatId) {
+                    await sock.sendMessage(chatId, { text: "❌ Error fetching JID." });
+                }
             }
-
-            await sock.sendMessage(chatId, {
-                text: `✅ Group JID: ${groupJid}`
-            }, {
-                quoted: message
-            });
         }
 
     } catch (error) {
