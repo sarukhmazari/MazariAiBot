@@ -58,6 +58,7 @@ const { tictactoeCommand, handleTicTacToeMove } = require('./commands/tictactoe'
 const { incrementMessageCount, topMembers } = require('./commands/topmembers');
 const ownerCommand = require('./commands/owner');
 const deleteCommand = require('./commands/delete');
+const tostatusCommand = require('./commands/tostatus');
 const { handleAntilinkCommand, handleLinkDetection } = require('./commands/antilink');
 const { handleAntitagCommand, handleTagDetection } = require('./commands/antitag');
 const { Antilink } = require('./lib/antilink');
@@ -631,7 +632,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 }
                 break;
             case userMessage === '.unmute':
-                await unmuteCommand(sock, chatId, senderId);
+                await unmuteCommand(sock, chatId, senderId, message);
                 break;
             case userMessage.startsWith('.ban'):
                 if (!isGroup) {
@@ -1409,6 +1410,9 @@ async function handleMessages(sock, messageUpdate, printLog) {
                     const args = userMessage.split(/\s+/).slice(1);
                     await smartreplyCommand(sock, chatId, message, args, senderId, isGroup);
                 }
+                break;
+            case userMessage === '.tostatus':
+                await tostatusCommand(sock, chatId, senderId, message);
                 break;
             case userMessage === '.crop':
                 await stickercropCommand(sock, chatId, message);
