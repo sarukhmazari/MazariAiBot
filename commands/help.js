@@ -65,6 +65,7 @@ async function helpCommand(sock, chatId, message) {
 ⬖ .mute
 ⬖ .unmute
 ⬖ .tagall
+⬖ .tagadmin
 ⬖ .hidetag
 ⬖ .antilink
 ⬖ .antitag
@@ -146,12 +147,12 @@ async function helpCommand(sock, chatId, message) {
             menuMsg = await sock.sendMessage(chatId, {
                 image: { url: dpPath },
                 caption: styledHelpMessage,
-                contextInfo: global.channelInfo?.contextInfo
+                contextInfo: global.promotionInfo?.contextInfo
             }, { quoted: message });
         } else {
             menuMsg = await sock.sendMessage(chatId, {
                 text: styledHelpMessage,
-                contextInfo: global.channelInfo?.contextInfo
+                contextInfo: global.promotionInfo?.contextInfo
             }, { quoted: message });
         }
 
@@ -161,7 +162,7 @@ async function helpCommand(sock, chatId, message) {
                 audio: { url: musicPath }, 
                 mimetype: 'audio/mpeg', 
                 ptt: false, // Sent as standard audio for maximum playback reliability
-                contextInfo: global.channelInfo?.contextInfo
+                contextInfo: global.promotionInfo?.contextInfo
             }, { quoted: menuMsg });
         }
     } catch (error) {

@@ -8,6 +8,7 @@ temp/
 downloads/
 data/autoStatus.json
 data/messageCount.json
+data/
 *.rar
 *.zip
 *.log

@@ -13,8 +13,7 @@ async function aliveCommand(sock, chatId, message) {
             `Type *.menu* for full command list`;
 
         await sock.sendMessage(chatId, {
-            text: message1,
-            contextInfo: global.channelInfo.contextInfo
+            text: message1
         }, { quoted: message });
     } catch (error) {
         console.error('Error in alive command:', error);

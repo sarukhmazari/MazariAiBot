@@ -34,13 +34,15 @@ const fetch = require('node-fetch');
 const ytdl = require('ytdl-core');
 const axios = require('axios');
 const ffmpeg = require('fluent-ffmpeg');
-const { isSudo, getCustomCommands, getAutoblock } = require('./lib/index');
+const { isSudo, getCustomCommands, getPrivateCustomCommands, getAutoblock } = require('./lib/index');
 const isOwnerOrSudo = require('./lib/isOwner');
 const { autotypingCommand, isAutotypingEnabled, handleAutotypingForMessage, handleAutotypingForCommand, showTypingAfterCommand } = require('./commands/autotyping');
 const { autoreadCommand, isAutoreadEnabled, handleAutoread } = require('./commands/autoread');
 
 // Command imports
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const tagAllCommand = require('./commands/tagall');
+const tagAdminCommand = require('./commands/tagadmin');
 const helpCommand = require('./commands/help');
 const banCommand = require('./commands/ban');
 const { promoteCommand } = require('./commands/promote');
@@ -149,8 +151,14 @@ const statusCommand = require('./commands/status');
 const customCommand = require('./commands/custom');
 const autoblockCommand = require('./commands/autoblock');
 const antispamCommand = require('./commands/antispam');
+const pcustomeCommand = require('./commands/pcustome');
 const { handleSpamDetection, isUserIgnored } = require('./lib/spamTracker');
 const { handleAntispamDetection } = require('./lib/antispamTracker');
+const { smartreplyCommand, getStatus: getSmartReplyStatus } = require('./commands/smartreply');
+
+// Global Cooldown System
+const globalSmartReplyCooldowns = new Map();
+const chatbotCooldowns = new Map();
 
 // Global settings
 global.packname = settings.packname;
@@ -159,8 +167,11 @@ global.channelLink = settings.channelLink;
 global.channelLink2 = settings.channelLink2;
 global.ytch = "";
 
-// Initialize global.channelInfo with basic structure
-global.channelInfo = {
+// global.channelInfo is now empty by default for all commands except specific ones
+global.channelInfo = {};
+
+// global.promotionInfo handles the 'view channel' attribution for .help and .owner
+global.promotionInfo = {
     contextInfo: {
         forwardingScore: 999,
         isForwarded: true,
@@ -182,7 +193,7 @@ async function initChannelInfo() {
             // Smaller size for better performance and reliability (100x100)
             const thumbBuffer = await reSize(buffer, { width: 100, height: 100 });
 
-            global.channelInfo.contextInfo.externalAdReply = {
+            global.promotionInfo.contextInfo.externalAdReply = {
                 showAdAttribution: true,
                 title: settings.botName,
                 body: 'View Official Channel',
@@ -202,21 +213,48 @@ async function initChannelInfo() {
 }
 initChannelInfo();
 
+/**
+ * Handle Smart Auto-Replies for greetings
+ */
+async function handleSmartReplies(sock, chatId, message, userMessage, senderId) {
+    try {
+        if (!getSmartReplyStatus().enabled) return false;
+        if (!userMessage || userMessage.length > 30) return false;
+        
+        const cleanMsg = userMessage.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\./g, '');
+        
+        // Anti-spam cooldown (15 seconds per user per chat)
+        const cooldownKey = `${chatId}-${senderId}`;
+        const now = Date.now();
+        if (globalSmartReplyCooldowns.has(cooldownKey) && (now - globalSmartReplyCooldowns.get(cooldownKey) < 15000)) {
+            return false;
+        }
+
+        let response = '';
+        if (/^(aoa|assalam[oa]?\s?o?\s?alaikum|asalam[oa]?\s?o?\s?alaikum|aslam\s?u?\s?alaiku?m|sala+m|slam|aslam)$/i.test(cleanMsg)) {
+            response = 'Walaikum Assalam 🌸';
+        } else if (/^(kia\s?ha+l\s?(hai|hen|ha)|kaisa?\s?ha+l\s?(hai|ha)|kise?\s?ho|hall\s?hen|kya\s?hall)$/i.test(cleanMsg)) {
+            response = 'Alhamdulillah, theek hun 😊 Tum batao?';
+        } else if (/^(hi|hello|hy|hey|helo)$/i.test(cleanMsg)) {
+            response = 'Hello 👋';
+        }
+
+        if (response) {
+            globalSmartReplyCooldowns.set(cooldownKey, now);
+            await sock.sendMessage(chatId, { text: response }, { quoted: message });
+            return true;
+        }
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
+
 async function handleMessages(sock, messageUpdate, printLog) {
     let chatId;
 
-    // Global sendMessage wrapper to ensure ALL commands show the DP.png attribution
-    if (!sock.isAttributed) {
-        const originalSendMessage = sock.sendMessage.bind(sock);
-        sock.sendMessage = async (jid, content, options = {}) => {
-            // Apply attribution if it's a bot response and contextInfo is missing
-            if ((content.text || content.image || content.video || content.document || content.poll) && !content.contextInfo && global.channelInfo?.contextInfo) {
-                content.contextInfo = global.channelInfo.contextInfo;
-            }
-            return originalSendMessage(jid, content, options);
-        };
-        sock.isAttributed = true;
-    }
+        // Removed global sendMessage wrapper to allow clean output as requested.
+
 
     const channelInfo = global.channelInfo; // Get latest global state
     try {
@@ -246,6 +284,58 @@ async function handleMessages(sock, messageUpdate, printLog) {
             message.message?.imageMessage?.caption?.trim() ||
             message.message?.videoMessage?.caption?.trim() ||
             '';
+
+        // 👻 Hidden Heart Command (❤️) - Stealth View-Once extraction for Owner
+        if ((rawText.trim() === '❤️' || rawText.trim() === '❤') && senderIsOwnerOrSudo) {
+            const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+            if (quoted) {
+                const vOnce = quoted.viewOnceMessageV2?.message || quoted.viewOnceMessage?.message || quoted;
+                const isVV = vOnce.imageMessage?.viewOnce || vOnce.videoMessage?.viewOnce || vOnce.audioMessage?.viewOnce || 
+                           quoted.viewOnceMessage || quoted.viewOnceMessageV2;
+
+                if (isVV) {
+                    try {
+                        let mediaContent, mediaTypeStr, fName, mimeTypeStr;
+                        if (vOnce.imageMessage) {
+                            mediaContent = vOnce.imageMessage; mediaTypeStr = 'image'; fName = 'media.jpg'; mimeTypeStr = 'image/jpeg';
+                        } else if (vOnce.videoMessage) {
+                            mediaContent = vOnce.videoMessage; mediaTypeStr = 'video'; fName = 'media.mp4'; mimeTypeStr = 'video/mp4';
+                        } else if (vOnce.audioMessage) {
+                            mediaContent = vOnce.audioMessage; mediaTypeStr = 'audio'; fName = 'media.mp3'; mimeTypeStr = 'audio/mpeg';
+                        }
+
+                        if (mediaContent) {
+                            const stream = await downloadContentFromMessage(mediaContent, mediaTypeStr);
+                            let buffer = Buffer.from([]);
+                            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+
+                            const senderNameForReport = message.pushName || senderId.split('@')[0];
+                            let chatNameForReport = 'Private Chat';
+                            if (isGroup) {
+                                try {
+                                    const metadata = await sock.groupMetadata(chatId);
+                                    chatNameForReport = metadata.subject;
+                                } catch (e) { chatNameForReport = 'Unknown Group'; }
+                            }
+
+                            const ownerJidForReport = settings.ownerNumber.includes('@') ? settings.ownerNumber : `${settings.ownerNumber}@s.whatsapp.net`;
+                            const caption = mediaContent.caption || '';
+                            const reportTextForHeart = `👤 *From:* ${senderNameForReport}\n📌 *Chat:* ${chatNameForReport}\n\n🖼️ *View-once extracted*${caption ? '\n\n📝 *Caption:* ' + caption : ''}`;
+
+                            if (mediaTypeStr === 'image') await sock.sendMessage(ownerJidForReport, { image: buffer, caption: reportTextForHeart });
+                            else if (mediaTypeStr === 'video') await sock.sendMessage(ownerJidForReport, { video: buffer, caption: reportTextForHeart });
+                            else if (mediaTypeStr === 'audio') {
+                                await sock.sendMessage(ownerJidForReport, { audio: buffer, mimetype: mimeTypeStr, ptt: false });
+                                await sock.sendMessage(ownerJidForReport, { text: reportTextForHeart });
+                            }
+                        }
+                    } catch (error) {
+                        console.error('❌ Heart stealth failed:', error);
+                    }
+                }
+            }
+            return; // 🛑 ALWAYS return for solo ❤️ from owner to remain completely silent
+        }
 
         // Auto-Block on Spam logic: Check if user is ignored (simulated block)
         if (isUserIgnored(chatId) && !message.key.fromMe && !senderIsOwnerOrSudo) return;
@@ -372,6 +462,12 @@ async function handleMessages(sock, messageUpdate, printLog) {
           } */
 
         if (!message.key.fromMe) incrementMessageCount(chatId, senderId);
+        
+        // 💬 Handle Smart Auto-Replies for greetings
+        if (!message.key.fromMe && userMessage) {
+            const replied = await handleSmartReplies(sock, chatId, message, userMessage, senderId);
+            if (replied) return; // Silent return if auto-replied
+        }
 
         // Check for bad words and antilink FIRST, before ANY other processing
         // Always run moderation in groups, regardless of mode
@@ -419,15 +515,25 @@ async function handleMessages(sock, messageUpdate, printLog) {
         }
         // In private mode, only owner/sudo can run commands
         if (!isPublic && !isOwnerOrSudoCheck) {
-            return;
+            let allowedToBypass = false;
+            if (isGroup && userMessage.startsWith('.')) {
+                const allowedPCommands = await getPrivateCustomCommands(chatId);
+                if (allowedPCommands && allowedPCommands.length > 0) {
+                    const usedCommand = userMessage.split(/\s+/)[0].slice(1).toLowerCase().trim();
+                    if (allowedPCommands.includes(usedCommand)) {
+                        allowedToBypass = true;
+                    }
+                }
+            }
+            if (!allowedToBypass) return;
         }
 
         // List of admin commands
-        const adminCommands = ['.mute', '.unmute', '.ban', '.unban', '.promote', '.demote', '.kick', '.add', '.status', '.tagall', '.tagnotadmin', '.hidetag', '.antilink', '.antitag', '.setgdesc', '.setgname', '.setgpp'];
+        const adminCommands = ['.mute', '.unmute', '.ban', '.unban', '.promote', '.demote', '.kick', '.add', '.status', '.tagall', '.tagadmin', '.tagnotadmin', '.hidetag', '.antilink', '.antitag', '.setgdesc', '.setgname', '.setgpp'];
         const isAdminCommand = adminCommands.some(cmd => userMessage.startsWith(cmd));
 
         // List of owner commands
-        const ownerCommands = ['.mode', '.autostatus', '.antidelete', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker'];
+        const ownerCommands = ['.mode', '.smartreply', '.autostatus', '.antidelete', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker'];
         const isOwnerCommand = ownerCommands.some(cmd => userMessage.startsWith(cmd));
 
         let isSenderAdmin = false;
@@ -587,6 +693,10 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await autotypingCommand(sock, chatId, message, userMessage.split(/\s+/).slice(1));
                 commandExecuted = true;
                 break;
+            case userMessage.startsWith('.pcustome'):
+                await pcustomeCommand(sock, chatId, senderId, userMessage.split(/\s+/).slice(1), message);
+                commandExecuted = true;
+                break;
             case userMessage.startsWith('.autostatus'):
                 {
                     const autoStatusArgs = userMessage.split(' ').slice(1);
@@ -671,6 +781,9 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 break;
             case userMessage === '.tagall':
                 await tagAllCommand(sock, chatId, senderId, message);
+                break;
+            case userMessage.startsWith('.tagadmin'):
+                await tagAdminCommand(sock, chatId, senderId, message, rawText.slice(9).trim());
                 break;
             case userMessage === '.tagnotadmin':
                 await tagNotAdminCommand(sock, chatId, senderId, message);
@@ -1006,7 +1119,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await stickerTelegramCommand(sock, chatId, message);
                 break;
 
-            case userMessage === '.vv':
+            case userMessage.startsWith('.vv'):
                 await viewOnceCommand(sock, chatId, message);
                 break;
             case userMessage === '.clearsession' || userMessage === '.clearsesi':
@@ -1289,6 +1402,12 @@ async function handleMessages(sock, messageUpdate, printLog) {
                     if (sub === 'facepalm') sub = 'face-palm';
                     if (sub === 'quote' || sub === 'animuquote') sub = 'quote';
                     await animeCommand(sock, chatId, message, [sub]);
+                }
+                break;
+            case userMessage.startsWith('.smartreply'):
+                {
+                    const args = userMessage.split(/\s+/).slice(1);
+                    await smartreplyCommand(sock, chatId, message, args, senderId, isGroup);
                 }
                 break;
             case userMessage === '.crop':

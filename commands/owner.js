@@ -26,6 +26,7 @@ END:VCARD`.trim();
                 { vcard: vcard2 }
             ] 
         },
+        contextInfo: global.promotionInfo?.contextInfo
     });
 }
 
